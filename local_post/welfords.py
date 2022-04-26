@@ -5,7 +5,7 @@
 # mean accumulates the mean of the entire dataset
 # M2 aggregates the squared distance from the mean
 # count aggregates the number of samples seen so far
-def update(existingAggregate, newValue):
+def _update(existingAggregate, newValue):
     (count, mean, M2) = existingAggregate
     count += 1
     delta = newValue - mean
@@ -15,10 +15,21 @@ def update(existingAggregate, newValue):
     return (count, mean, M2)
 
 # Retrieve the mean, variance and sample variance from an aggregate
-def finalize(existingAggregate):
+def _finalize(existingAggregate):
     (count, mean, M2) = existingAggregate
     if count < 2:
         return float("nan")
     else:
         (mean, variance, sampleVariance) = (mean, M2 / count, M2 / (count - 1))
         return (mean, variance, sampleVariance)
+
+
+def update_agg(agg_list,sol_list):
+    for i in range(len(agg_list)):
+        agg_list[i] = _update(agg_list[i],sol_list[i])
+    return agg_list
+
+def finalize(agg_list):
+    for i in range(len(agg_list)):
+        agg_list[i] = _finalize(agg_list[i])
+    return agg_list

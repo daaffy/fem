@@ -6,21 +6,18 @@ import numpy as np
 parameters["ghost_mode"] = "shared_facet" # required by dS
 
 # constructing peers element on elastic annulus
-# 
-
-# https://answers.launchpad.net/dolfin/+question/170112
+# - decoupled solid and fluid domain
+# - (!) unstable
 
 # -------------------------------------------------------------------
 # parameters
-# f = [Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4), 
-#     Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4)]
-
-f = Constant((0.0,1.0))
-# f = Constant((1.0,0.0))
+f = [Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=2), 
+    Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=2)]
+# f = Constant((0.0,1.0))
 
 stress_a = Expression((('pi*sin(pi*(x[0]+x[1]))+2*pi*cos(pi*x[0])*sin(pi*x[1])','pi*sin(pi*(x[0]+x[1]))'),
-                    ('pi*sin(pi*(x[0]+x[1]))','pi*sin(pi*(x[0]+x[1]))+2*pi*sin(pi*x[0])*cos(pi*x[1])')), degree=4)
-pressure_a = Expression('cos(pi*x[0])*cos(pi*x[1])', degree=4)
+                    ('pi*sin(pi*(x[0]+x[1]))','pi*sin(pi*(x[0]+x[1]))+2*pi*sin(pi*x[0])*cos(pi*x[1])')), degree=2)
+pressure_a = Expression('cos(pi*x[0])*cos(pi*x[1])', degree=2)
 
 rho_s = 1
 rho_f = 1
@@ -38,6 +35,7 @@ invC_22 = as_matrix(invC[2:4,2:4])
 # -------------------------------------------------------------------
 # define the domain; "square annulus"
 
+
 # domain IDs
 solid_dom = 1
 fluid_dom = 2
@@ -52,22 +50,16 @@ domain.set_subdomain(solid_dom, domain)
 domain.set_subdomain(fluid_dom, domain_inside)
 mesh = generate_mesh(domain, 100)
 
+# plt.figure()
+# plot(mesh)
+# plt.show()
+
 class OnBoundary(SubDomain):
     def inside(self, x, on_boundary):
         return on_boundary
 class OnInterface(SubDomain):
     def inside(self, x, on_boundary):
         return (near(x[0], -a) or near(x[0], a)) and between(x[1], [-a, a]) or (near(x[1], -a) or near(x[1], a)) and between(x[0], [-a, a])
-
-
-# edge_markers = MeshFunction("bool", mesh, mesh.topology().dim() - 1)
-# OnInterface().mark(edge_markers, True)
-
-# mesh = refine(mesh, edge_markers)
-
-# plt.figure()
-# plot(mesh)
-# plt.show()
 
 boundaries = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 on_boundary = OnBoundary()
@@ -94,11 +86,6 @@ solid_restriction = MeshRestriction(mesh, solid)
 fluid = Fluid()
 fluid_restriction = MeshRestriction(mesh, fluid)
 
-# file = File("subdomains.pvd")
-# file << subdomains
-# File("boundaries.pvd") << boundaries
-# File("mesh.xml") << mesh
-
 # -------------------------------------------------------------------
 # define function spaces 
 
@@ -107,9 +94,9 @@ _H = FiniteElement("RT", mesh.ufl_cell(), 1)
 R = FiniteElement("CG", mesh.ufl_cell(), 1)
 V_1 = FunctionSpace(mesh, MixedElement([_H,_B,_H,_B,R])) # solid domain
 V_2 = FunctionSpace(mesh, FiniteElement("CG", mesh.ufl_cell(), 1)) # fluid domain
-V_3 = VectorFunctionSpace(mesh, "CG", 1) # transmission
-V = BlockFunctionSpace([V_1, V_2, V_3], restrict=[solid_restriction, fluid_restriction, interface_restriction])
-# V = BlockFunctionSpace([V_1, V_2], restrict=[solid_restriction, fluid_restriction])
+V_3 = VectorFunctionSpace(mesh, "CG", 1) # fluid domain
+# V = BlockFunctionSpace([V_1, V_2, V_3], restrict=[solid_restriction, fluid_restriction, interface_restriction])
+V = BlockFunctionSpace([V_1, V_2], restrict=[solid_restriction, fluid_restriction])
 
 
 # -------------------------------------------------------------------
@@ -117,8 +104,8 @@ V = BlockFunctionSpace([V_1, V_2, V_3], restrict=[solid_restriction, fluid_restr
 
 # trial functions
 trial_func = BlockTrialFunction(V)
-(pre_sig, p, phi) = block_split(trial_func)
-# (pre_sig, p) = block_split(trial_func)
+# (pre_sig, p, phi) = block_split(trial_func)
+(pre_sig, p) = block_split(trial_func)
 (sig1_H, pre_sig1_B, sig2_H, pre_sig2_B, r) = dolfin.split(pre_sig)
 sig1_B = as_vector([pre_sig1_B.dx(1),-pre_sig1_B.dx(0)])
 sig2_B = as_vector([pre_sig2_B.dx(1),-pre_sig2_B.dx(0)])
@@ -127,8 +114,8 @@ sig2_B = as_vector([pre_sig2_B.dx(1),-pre_sig2_B.dx(0)])
 
 # test functions
 test_func = BlockTestFunction(V)
-(pre_tau, q, psi) = block_split(test_func)
-# (pre_tau, q) = block_split(test_func)
+# (pre_tau, q, psi) = block_split(test_func)
+(pre_tau, q) = block_split(test_func)
 (tau1_H, pre_tau1_B, tau2_H, pre_tau2_B, s) = dolfin.split(pre_tau)
 tau1_B = as_vector([pre_tau1_B.dx(1),-pre_tau1_B.dx(0)])
 tau2_B = as_vector([pre_tau2_B.dx(1),-pre_tau2_B.dx(0)])
@@ -140,10 +127,7 @@ sig_tens = (sig1_H, sig1_B, sig2_H, sig2_B, r)
 tau_tens = (tau1_H, tau1_B, tau2_H, tau2_B, s)
 
 n = FacetNormal(mesh)
-# n = as_vector((n[0],n[1]))
-# g = stress_a*n + pressure_a*n
-g = Constant((0.0,0.0))
-# File("normal.pvd") << n
+g = stress_a*n + pressure_a*n
 
 f_sgn = '-'
 s_sgn = '+'
@@ -193,16 +177,17 @@ def fluid_form(p,q):
 def w3(p,phi):
     return -omega**2*dot(p(f_sgn)*n(s_sgn),phi(f_sgn))*dS
 
-a = [[elastic_form(sig_tens,tau_tens),      0,                      b_form(tau_tens,phi)],
-     [0,                                    fluid_form(p,q),        w3(q,phi)],
-     [b_form(sig_tens,psi),                 w3(p,psi),              0]]
+# a = [[elastic_form(sig_tens,tau_tens),      0,                      b_form(tau_tens,phi)],
+#      [0,                                    fluid_form(p,q),        w3(q,phi)],
+#      [b_form(sig_tens,psi),                 w3(p,psi),              0]]
 
-l =  [elastic_load(tau_tens), 0, -omega**2*dot(g('+'),psi('+'))*dS]
+# l =  [elastic_load(tau_tens), 0, -omega**2*dot(g('+'),psi('+'))*dS]
 
-# a = [[elastic_form(sig_tens,tau_tens),      0],
-#      [0,                                    fluid_form(p,q)]]
+a = [[elastic_form(sig_tens,tau_tens),      0],
+     [0,                                    fluid_form(p,q)]]
 
-# l =  [elastic_load(tau_tens), 0]
+l =  [elastic_load(tau_tens), 0]
+
 
 A = block_assemble(a)
 L = block_assemble(l)
@@ -210,47 +195,19 @@ L = block_assemble(l)
 # -------------------------------------------------------------------
 # solve
 U = BlockFunction(V)
-block_solve(A, U.block_vector(), L, linear_solver="mumps")
-
-# U_2 = BlockFunction(V)
-# U_2.vector().add_local(U.vector().get_local())
-# err1.vector().add_local(+ U_ex.vector().get_local())
+block_solve(A, U.block_vector(), L)
 
 # -------------------------------------------------------------------
 # # plot solution
-(pre_sig, p, phi) = block_split(U)
-# (pre_sig, p) = block_split(U)
-(sig1_H, pre_sig1_B, sig2_H, pre_sig2_B, r) = pre_sig.split() # https://bitbucket.org/fenics-project/dolfin/issues/194/split-u-versus-usplit
+# (pre_sig, p, phi) = block_split(U)
+(pre_sig, p) = block_split(U)
+(sig1_H, pre_sig1_B, sig2_H, pre_sig2_B, r) = dolfin.split(pre_sig)
 sig1_B = as_vector([pre_sig1_B.dx(1),-pre_sig1_B.dx(0)])
 sig2_B = as_vector([pre_sig2_B.dx(1),-pre_sig2_B.dx(0)])
 
-
-# eval stuff
-el = V_1.sub(1).element()
-
-# Where to evaluate
-x = np.array([1.5, 0.0])
-# Find the cell with point
-x_point = Point(*x) 
-cell_id = mesh.bounding_box_tree().compute_first_entity_collision(x_point)
-cell = Cell(mesh, cell_id)
-coordinate_dofs = cell.get_vertex_coordinates()
-
-# Array for values with derivatives of all basis functions. 4 * element dim
-# values = np.zeros(4*el.space_dimension(), dtype=float)
-# Compute all 2nd order derivatives
-values = el.evaluate_basis_derivatives_all(1, x, coordinate_dofs, cell.orientation()).reshape((-1,2)) # reshape parameters correct?
-dofs = V_1.sub(1).dofmap().cell_dofs(cell_id)
-dofs = pre_sig1_B.vector()[dofs]
-
-# print(np.sum(values[:,0]*dofs)) # d/dx
-# print(np.sum(values[:,1]*dofs)) # d/dy
-
-# a = sig1_B + sig1_B
-
 plt.figure()
-# plot(sig1_H[0]+sig1_B[0])
-plot(p)
+plot = plot(sig1_H[0]+sig1_B[0])
+# p = plot(p)
 plt.show()
 
 # # -------------------------------------------------------------------
@@ -258,6 +215,3 @@ plt.show()
 error = (stress_a[0,0]-(sig1_H[0]+sig1_B[0]))**2*dx(solid_dom)
 E = sqrt(abs(assemble(error)))
 print(E)
-
-# file = File("test.pvd")
-# file<<U

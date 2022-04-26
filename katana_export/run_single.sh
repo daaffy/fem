@@ -4,8 +4,8 @@
 ### submit single run_statistics.py job for a given epsilon (1st argument)
 
 #PBS -N fem_fenics_0
-#PBS -l select=1:ncpus=1:mem=50gb
-#PBS -l walltime=0:20:00
+#PBS -l select=1:ncpus=1:mem=25gb
+#PBS -l walltime=5:00:00
 #PBS -j oe
 #PBS -M j.hills@student.unsw.edu.au
 #PBS -m ae
