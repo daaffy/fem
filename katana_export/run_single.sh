@@ -3,9 +3,9 @@
 ### qsub -v "eps=[float]","n=[int]" run_single.sh
 ### submit single run_statistics.py job for a given epsilon (1st argument)
 
-#PBS -N fem_fenics_0
+#PBS -N fem_fenics
 #PBS -l select=1:ncpus=1:mem=25gb
-#PBS -l walltime=5:00:00
+#PBS -l walltime=12:00:00
 #PBS -j oe
 #PBS -M j.hills@student.unsw.edu.au
 #PBS -m ae

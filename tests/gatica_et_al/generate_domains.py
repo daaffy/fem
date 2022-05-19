@@ -16,7 +16,7 @@ domain_inside = Rectangle(Point(-a,-a), Point(a,a))
 # domain = domain_outside - domain_inside
 domain.set_subdomain(solid_dom, domain)
 domain.set_subdomain(fluid_dom, domain_inside)
-mesh = generate_mesh(domain, 20)
+mesh = generate_mesh(domain, 100)
 
 class OnBoundary(SubDomain):
     def inside(self, x, on_boundary):

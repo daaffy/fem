@@ -19,7 +19,7 @@ parameters["ghost_mode"] = "shared_facet" # required by dS
 
 # -------------------------------------------------------------------
 # problem parameters
-f = Constant((0.0,1.0)) 
+f = Constant((0.0,1.0)) # (!) as_vector for Expressions
 rho_s = 1
 rho_f = 1
 omega = sqrt(2)*Constant(pi)
@@ -138,9 +138,49 @@ def A_fluid(trial,test):
     return 1/(rho_f*omega**2)*_f_1(p,q) - kappa_f**2/(rho_f*omega**2)*_f_2(p,q)
 
 # ----- transmission form
+sgn_1 = '+' # (!!!) need to check sgn's
 
+def _t_s(trial,test):
+    sigma = trial[0]
+    psi = test[3]
+    return dot(sigma(sgn_1)*n(sgn_1),psi(sgn_1))*dS
+
+def _t_f(trial,test):
+    p = trial[1]
+    psi = test[3]
+    return dot(p(sgn_1)*n(sgn_1),psi(sgn_1))*dS
 
 # assemble
-a = A_fluid(trial,test)
-# a = A_solid(trial,test)
-A = assemble(a)
+# a = [[A_solid(trial,test),0],[0,A_fluid(trial,test)]]
+# a = [[A_solid(trial,test)]]
+# a = [[_t_f(trial,test)]]
+
+# (!) check sgn's on _t_*
+# a = [[A_solid(trial,test), 0, _t_s(test,trial)],
+#      [0, A_fluid(trial,test), -_t_f(test,trial)],
+#      [-_t_s(trial,test), -_t_f(trial,test), 0]]
+# l = [1/kappa_s**2*dot(f,div(test[0]))*dx(solid_dom),0,0]
+a = [[A_solid(trial,test)]]
+l = [1/kappa_s**2*dot(f,div(test[0]))*dx(solid_dom)]
+# a = [[A_fluid(trial,test)]]
+# l = [1*test[1]*dx(solid_dom)]
+A = block_assemble(a)
+L = block_assemble(l)
+
+# -------------------------------------------------------------------
+# solve
+U = BlockFunction(V)
+# block_solve(A, U.block_vector(), L, linear_solver="mumps")
+block_solve(A, U.block_vector(), L)
+# -------------------------------------------------------------------
+# plot solution
+(pre_sig, p, phi) = block_split(U)
+(sig1_H, pre_sig1_B, sig2_H, pre_sig2_B, r) = pre_sig.split()
+sig1_B = as_vector([pre_sig1_B.dx(1),-pre_sig1_B.dx(0)])
+sig2_B = as_vector([pre_sig2_B.dx(1),-pre_sig2_B.dx(0)])
+# sigma = as_matrix([[sig1_H],[sig2_H]]) + as_matrix([[sig1_B],[sig2_B]])
+sigma = as_tensor((sig1_H+sig1_B,sig2_H+sig2_B))
+
+plt.figure()
+plot(p)
+plt.show()

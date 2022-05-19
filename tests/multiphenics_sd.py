@@ -12,10 +12,9 @@ parameters["ghost_mode"] = "shared_facet" # required by dS
 
 # -------------------------------------------------------------------
 # parameters
-# f = [Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4), 
-#     Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4)]
+f = [Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4), Expression('2*pi*pi*cos(pi*(x[0]+x[1]))', degree=4)]
 
-f = Constant((0.0,1.0))
+# f = Constant((0.0,1.0))
 # f = Constant((1.0,0.0))
 
 stress_a = Expression((('pi*sin(pi*(x[0]+x[1]))+2*pi*cos(pi*x[0])*sin(pi*x[1])','pi*sin(pi*(x[0]+x[1]))'),
@@ -103,11 +102,11 @@ fluid_restriction = MeshRestriction(mesh, fluid)
 # define function spaces 
 
 _B = FiniteElement("Bubble", mesh.ufl_cell(), 3)
-_H = FiniteElement("RT", mesh.ufl_cell(), 1)
+_H = FiniteElement("RT", mesh.ufl_cell(), 2)
 R = FiniteElement("CG", mesh.ufl_cell(), 1)
 V_1 = FunctionSpace(mesh, MixedElement([_H,_B,_H,_B,R])) # solid domain
 V_2 = FunctionSpace(mesh, FiniteElement("CG", mesh.ufl_cell(), 1)) # fluid domain
-V_3 = VectorFunctionSpace(mesh, "CG", 1) # transmission
+V_3 = VectorFunctionSpace(mesh, "CG", 2) # transmission
 V = BlockFunctionSpace([V_1, V_2, V_3], restrict=[solid_restriction, fluid_restriction, interface_restriction])
 # V = BlockFunctionSpace([V_1, V_2], restrict=[solid_restriction, fluid_restriction])
 
@@ -141,8 +140,8 @@ tau_tens = (tau1_H, tau1_B, tau2_H, tau2_B, s)
 
 n = FacetNormal(mesh)
 # n = as_vector((n[0],n[1]))
-# g = stress_a*n + pressure_a*n
-g = Constant((0.0,0.0))
+g = stress_a*n + pressure_a*n
+# g = Constant((0.0,0.0))
 # File("normal.pvd") << n
 
 f_sgn = '-'
@@ -250,7 +249,7 @@ dofs = pre_sig1_B.vector()[dofs]
 
 plt.figure()
 # plot(sig1_H[0]+sig1_B[0])
-plot(p)
+plot(sig1_H[0]+sig1_B[0])
 plt.show()
 
 # # -------------------------------------------------------------------

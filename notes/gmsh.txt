@@ -1,0 +1,23 @@
+ --- Downloading Gmsh
+
+"https://gitlab.onelab.info/gmsh/gmsh/-/issues/482:
+Download Gmsh from the website, the executable is located in
+Gmsh.app/Contents/MacOS/gmsh"
+
+--- Using Gmsh
+
+Geometry is specified in .geom file (can be created using the GUI or built up using script)
+Mesh data is contained in .msh file.
+
+--- Gmsh to Fenics 
+
+https://github.com/nschloe/meshio
+http://jsdokken.com/converted_files/tutorial_pygmsh.html
+
+pygmsh-meshio-dolfin boundary tagging "hacky solution"
+https://gist.github.com/michalhabera/bbe8a17f788192e53fd758a67cbf3bed
+
+
+errors:
+* "NotImplementedError: Axes3D currently only supports the aspect argument 'auto'. You passed in 'equal'.", when plotting the mesh.
+Need to prune z values. See J. Dokken's create_mesh function that incorporates this.

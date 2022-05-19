@@ -1,0 +1,47 @@
+
+---------------------------
+gmsh notes
+
+https://gitlab.onelab.info/gmsh/gmsh/-/issues/482:
+Download Gmsh from the website, the executable is located in
+Gmsh.app/Contents/MacOS/gmsh
+
+---------------------------
+THINGS TO LOOK AT TOMORROW (17/05)
+https://fenicsproject.org/qa/4000/constructing-subdomains-from-knowing-indices-cells-the-mesh/
+- constructing subdomains from the mesh data rather than via a logical expression defining the boundary
+- could be useful for creating MeshRestriction from the mesh data from Gmsh
+
+https://fenicsproject.discourse.group/t/converting-simple-2d-mesh-from-gmsh-to-dolfin/583/4
+https://fenicsproject.discourse.group/t/subdomain-definition-based-on-input-file/5363/5
+---------------------------
+katana/pbs notes
+
+https://hpc.research.uts.edu.au/getting_started/running/
+on creating unique scratch directory per job.
+
+
+
+https://unsw-restech.github.io/using_katana/about_katana.html,
+UNSW Katana has local scratch $TMPDIR (local to node or to job?; I think it's local to the node)
+https://docs.hpc.qmul.ac.uk/storage/usingtmp/
+
+
+-------------------------
+Installing anaconda, setting up virtual envs and coping packages to katana...?
+
+from scratch:
+conda env export > environment.yml # encodes the environment on the local machine
+conda env create -f environment.yml # creates envirnoment on the second machine
+
+updating environment:
+https://stackoverflow.com/questions/42352841/how-to-update-an-existing-conda-environment-with-a-yml-file
+
+e.g.
+Install meshio on local machine using conda:
+conda install -c conda-forge meshio
+
+
+
+
+
