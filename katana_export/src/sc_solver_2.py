@@ -8,8 +8,33 @@ class SC_Solver:
 
     def __init__(self, eval_points, h_max):
         self.eval_points = eval_points
+        self.num_eval_points = np.size(self.eval_points,1)
         self.h_max = h_max
-    
+
+    def test_sol(self,pert):
+        # artificial taylor series
+        def f_0(x):
+            # return sin(0.5*np.pi*x[0])*sin(0.5*np.pi*x[1])
+            return cos(np.pi*x[0])*cos(np.pi*x[1])
+
+        def f_1(x):
+            # return 10*sin(1*np.pi*x[0])*sin(1*np.pi*x[1])
+            return np.pi*sin(np.pi*(x[0]+x[1]))
+        
+        def f_2(x):
+            # return 10*sin(2*np.pi*x[0])*sin(2*np.pi*x[1])
+            return -2*cos(np.pi*(x[0]+x[1]))
+        
+        def f(x,pert):
+            return f_0(x) + pert*f_1(x) + np.power(pert,2)*f_2(x)
+
+        sol_0 = np.zeros([self.num_eval_points,1])
+        for i in range(self.num_eval_points):
+            x = self.eval_points[:2,i]
+            sol_0[i] = f(x,pert)
+
+        return (sol_0,0,0)
+
     def run_sd(self, pert):
         parameters["ghost_mode"] = "shared_facet" # required by dS
         parameters['form_compiler']['no-evaluate_basis_derivatives'] = False # required? (for calculating curl later)
@@ -28,7 +53,8 @@ class SC_Solver:
 
         rho_s = 1
         rho_f = 1
-        omega = sqrt(2)*Constant(pi)
+        # omega = sqrt(2)*Constant(pi)
+        omega = 0.5*sqrt(2)*Constant(pi)
         lamb = 1
         nu = 1
         c = omega/(sqrt(2)*Constant(pi))

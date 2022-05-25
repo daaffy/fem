@@ -7,8 +7,10 @@ import random
 import time
 import sys
 import pickle
+from aggs import *
 
 # exec(open("test_sd.py").read())
+random.seed(20)
 # -----------------------------------------------------------------------------------------------
 def generate_kappa(a):
     # generate random epsilon: uniform distribution between [-a,a]
@@ -32,8 +34,10 @@ solver = SC_Solver(eval_points, 100)
 
 # format: [agg_stress,agg_pressure,agg_rot]
 # agg_stress (e.g.) = (count,mean,M2), see welfords.py
-agg_sd = [(0,0,0),(0,0,0),(0,0,0)]
+# agg_sd = [(0,0,0),(0,0,0),(0,0,0)]
+agg_sd = aggs(3)
 
+kappa_history = []
 start = time.time()
 for i in range(n):
     print(i)
@@ -41,7 +45,9 @@ for i in range(n):
     # U = solver.run_sd(eps*0)
     U = solver.run_sd(eps*kappa)
     sol_list = solver.eval_sol(U)
-    agg_sd = welfords.update_agg(agg_sd,sol_list)
+    # agg_sd = welfords.update_agg(agg_sd,sol_list)
+    agg_sd.update(sol_list)
+
     # print(agg_sd[1][1][100])
     # print(agg_sd[0][0])
     # solver.plot_sol(U)
@@ -49,5 +55,5 @@ time_sd = time.time() - start
 
 save_file = '../data/eps_' + str(eps) + '.pkl'
 with open(save_file,'wb') as f:
-    pickle.dump([eps,n,eval_points,agg_sd,time_sd],f)
+    pickle.dump([eps,n,eval_points,agg_sd,time_sd,kappa_history],f)
     f.close()
